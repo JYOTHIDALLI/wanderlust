@@ -60,15 +60,16 @@ passport.deserializeUser(user.deserializeUser());
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
-  res.locals.currentUser = req.user;
+  res.locals.currUser = req.user;
   next();
 });
+
 
 app.get("/", (req, res) => {
   res.send("Hi, I am root");
 });
 
-app.get("/demouser", async (req, res) => {
+/*app.get("/demouser", async (req, res) => {
   try {
     let fakeUser = new user({
       email: "student@gmail.com",
@@ -79,7 +80,7 @@ app.get("/demouser", async (req, res) => {
   } catch (e) {
     res.send(e.message);
   }
-});
+});*/
 
 app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRoutes);
