@@ -5,11 +5,11 @@ const { listingSchema, reviewSchema } = require("./schema");
 
 module.exports.isLoggedIn = (req, res, next) => {
     if (!req.isAuthenticated()) {
-        req.session.redirectUrl = req.originalUrl; // Save the original URL the user tried to visit
+        req.session.returnTo = req.originalUrl; // ✅ Use 'returnTo' instead of 'redirectUrl'
         req.flash("error", "You must be logged in to create a listing!");
         return res.redirect("/login");
     }
-    next(); // Proceed if authenticated
+    next();
 };
 
 // saveRedirectUrl middleware

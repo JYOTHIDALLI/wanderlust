@@ -4,34 +4,33 @@ const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
-const ExpressError = require("./utils/ExpressError.js");
+const ExpressError = require("./utils/ExpressError");
 const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
-const user = require("./models/user.js");
-const Listing = require("./models/listing.js");
+const User = require("./models/user.js");
 
 const listingRouter = require("./routes/listing.js");
 const reviewRoutes = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
 
 const dirname = path.resolve();
-
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
-
-main()
-  .then(() => console.log("Connected to DB"))
-  .catch((err) => console.log(err));
 
 async function main() {
   await mongoose.connect(MONGO_URL);
 }
+main()
+  .then(() => console.log("Connected to DB"))
+  .catch((err) => console.log(err));
 
+// EJS setup
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(dirname, "views"));
 
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
@@ -53,10 +52,12 @@ app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.use(new LocalStrategy(user.authenticate()));
-passport.serializeUser(user.serializeUser());
-passport.deserializeUser(user.deserializeUser());
+// Passport config
+passport.use(new LocalStrategy({ usernameField: 'email' }, User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
+// Flash and user middleware
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
@@ -64,34 +65,29 @@ app.use((req, res, next) => {
   next();
 });
 
-
+// Routes
 app.get("/", (req, res) => {
   res.send("Hi, I am root");
 });
 
-/*app.get("/demouser", async (req, res) => {
-  try {
-    let fakeUser = new user({
-      email: "student@gmail.com",
-      username: "sigma-student"
-    });
-    let registeredUser = await user.register(fakeUser, "helloworld");
-    res.send(registeredUser);
-  } catch (e) {
-    res.send(e.message);
-  }
-});*/
+app.post("/login", passport.authenticate("local", {
+  successRedirect: "/listings",
+  failureRedirect: "/login",
+  failureFlash: true
+}));
 
 app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRoutes);
 app.use("/", userRouter);
 
+// Catch-all and error handler
 app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found"));
 });
 
 app.use((err, req, res, next) => {
-  const { statusCode = 500, message = "Something went wrong" } = err;
+  const { statusCode = 500 } = err;
+  if (!err.message) err.message = "Something went wrong";
   res.status(statusCode).render("error.ejs", { err });
 });
 
