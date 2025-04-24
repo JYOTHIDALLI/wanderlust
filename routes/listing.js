@@ -4,6 +4,7 @@ const wrapAsync = require("../utils/wrapAsync");
 const ExpressError = require("../utils/ExpressError");
 const Listing = require("../models/listing");
 const { isLoggedIn, isOwner, validateListing } = require("../middleware.js");
+
 // Index Route
 router.get("/", wrapAsync(async (req, res) => {
   let allListings = await Listing.find({});
@@ -21,24 +22,27 @@ router.get(
   wrapAsync(async (req, res) => {
     let { id } = req.params;
     const listing = await Listing.findById(id)
-    .populate({
-      path: "reviews",
-      populate: {
-        path: "author",
-      },
-    })
-    .populate("owner"); // Make sure this matches your model exactly
+      .populate({
+        path: "reviews",
+        populate: {
+          path: "author",
+        },
+      })
+      .populate("owner");
 
-  if (!listing) {
-    req.flash("error", "Listing you requested for does not exist!");
-    return res.redirect("/listings");
-  }
+    if (!listing) {
+      req.flash("error", "Listing you requested for does not exist!");
+      return res.redirect("/listings");
+    }
 
-  console.log(listing);
-  res.render("listings/show.ejs", { listing });
-})
+    res.render("./listings/show.ejs", { listing });
+    // res.send("SHOW PAGE")
+  })
 );
- // Create Route
+
+
+
+// Create Route
 router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res) => {
   const newListing = new Listing(req.body.listing);
   newListing.owner = req.user._id;
@@ -47,7 +51,7 @@ router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res) => {
   res.redirect("/listings");
 }));
 
-// Edit Route
+// Edit
 router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
   let { id } = req.params;
   const listing = await Listing.findById(id);
@@ -67,21 +71,21 @@ router.put(
   wrapAsync(async (req, res) => {
     let { id } = req.params;
     let listing = await Listing.findById(id);
-    if(!listing.owner._id.equals(res.locals.currUser._id)){
-      req.flash("error", "you don't have permission to edit");
-      return res.redirect(`/listings/${id}`);
+    if (!listing.owner._id.equals(req.user._id)) {
+      req.flash("error", "You don't have permission to edit");
+      return res.redirect(`/listings/${id}`); // Fixed this line
     }
     await Listing.findByIdAndUpdate(id, { ...req.body.listing });
     req.flash("success", "Listing Updated");
-    res.redirect(`/listings/${id}`);
+    res.redirect(`/listings/${id}`); // Fixed this line
   })
 );
 
-// Delete Route (fixed)
+// Delete Route
 router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
   const { id } = req.params;
   const deletedListing = await Listing.findByIdAndDelete(id); // Fixed this line
-  console.log(deletedListing); // This will now log the deleted listing correctly
+  console.log(deletedListing); 
   req.flash("success", "Listing deleted");
   res.redirect("/listings");
 }));
