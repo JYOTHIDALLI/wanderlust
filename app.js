@@ -1,84 +1,61 @@
-if (process.env.NODE_ENV != "production") {
-  require("dotenv").config();
-}
-
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const methodOverride = require("method-override");
-const port = 8080;
 const path = require("path");
+const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
-const dbUrl = process.env.ATLASDB_URL;
-const Listing = require("./models/listing.js");
-const wrapAsync = require("./utils/wrapAsync.js");
 const ExpressError = require("./utils/ExpressError.js");
-const { listingSchema, reviewSchema } = require("./schema.js");
-const Review = require("./models/review.js");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
 const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
-const User = require("./models/user.js");
+const user = require("./models/user.js");
+const Listing = require("./models/listing.js");
 
 const listingRouter = require("./routes/listing.js");
-const reviewRouter = require("./routes/review.js");
+const reviewRoutes = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "/views"));
-app.use(express.urlencoded({ extended: true }));
-app.use(methodOverride("_method"));
-app.use(express.static(path.join(__dirname, "public")));
-app.engine("ejs", ejsMate);
+const dirname = path.resolve();
 
-// * Connecting To DB
+const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+
 main()
-  .then((res) => {
-    console.log(Connected to Database);
-  })
+  .then(() => console.log("Connected to DB"))
   .catch((err) => console.log(err));
 
 async function main() {
-  await mongoose.connect(dbUrl);
+  await mongoose.connect(MONGO_URL);
 }
 
-// *Session Storage
-const store = MongoStore.create({
-  mongoUrl: dbUrl,
-  crypto: {
-    secret: process.env.SECRET,
-  },
-  touchAfter: 24 * 3600,
-});
+app.engine("ejs", ejsMate);
+app.set("view engine", "ejs");
+app.set("views", path.join(dirname, "views"));
 
-store.on("error", () => {
-  console.log(ERROR IN MONGO SESSION STORE ${err});
-});
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride("_method"));
+app.use(express.static(path.join(dirname, "public")));
 
-// * Session
 const sessionOptions = {
-  store,
-  secret: process.env.SECRET,
+  secret: "mysupersecretcode",
   resave: false,
   saveUninitialized: true,
   cookie: {
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    httpOnly: true,
-  },
+    httpOnly: true
+  }
 };
 
 app.use(session(sessionOptions));
 app.use(flash());
-
-// *Passport Settings
 app.use(passport.initialize());
 app.use(passport.session());
-passport.use(new LocalStrategy(User.authenticate()));
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+
+passport.use(new LocalStrategy(user.authenticate()));
+passport.serializeUser(user.serializeUser());
+passport.deserializeUser(user.deserializeUser());
 
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
@@ -87,39 +64,37 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/demo", async (req, res) => {
-  let fakeUser = new User({
-    email: "student@gmail.com",
-    username: "web-student",
-  });
 
-  let registeredUser = await User.register(fakeUser, "helloworld");
-  res.send(registeredUser);
+app.get("/", (req, res) => {
+  res.send("Hi, I am root");
 });
 
-app.get("/", async (req, res) => {
-  let allListings = await Listing.find({});
-  res.render("listings/index.ejs", { allListings });
-});
+/*app.get("/demouser", async (req, res) => {
+  try {
+    let fakeUser = new user({
+      email: "student@gmail.com",
+      username: "sigma-student"
+    });
+    let registeredUser = await user.register(fakeUser, "helloworld");
+    res.send(registeredUser);
+  } catch (e) {
+    res.send(e.message);
+  }
+});*/
 
-// * Router
 app.use("/listings", listingRouter);
-app.use("/listings/:id/reviews", reviewRouter);
+app.use("/listings/:id/reviews", reviewRoutes);
 app.use("/", userRouter);
 
-// * Error Handler
-
 app.all("*", (req, res, next) => {
-  next(new ExpressError(404, "Page Not Found!"));
+  next(new ExpressError(404, "Page Not Found"));
 });
 
 app.use((err, req, res, next) => {
-  let { status = 500, message = Something Went Wrong } = err;
-  res.status(status).render("listings/error.ejs", { err });
-  // res.status(status).send(message);
+  const { statusCode = 500, message = "Something went wrong" } = err;
+  res.status(statusCode).render("error.ejs", { err });
 });
 
-// * Listening Route
-app.listen(port, () => {
-  console.log(`App is listening on port : ${port}`);
+app.listen(8080, () => {
+  console.log("Server is listening on port 8080");
 });
