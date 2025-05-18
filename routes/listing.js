@@ -5,13 +5,17 @@ const ExpressError = require("../utils/ExpressError");
 const Listing = require("../models/listing");
 const { isLoggedIn, isOwner, validateListing } = require("../middleware");
 
-// INDEX ROUTE
+// INDEX - Show all listings
 router.get("/", wrapAsync(async (req, res) => {
   const listings = await Listing.find({});
   res.render("listings/index", { listings });
 }));
 
-// SHOW ROUTE
+router.get("/new",wrapAsync(async(re, res) => {
+  res.render("listings/new") ;
+}));
+
+// SHOW - Show a single listing
 router.get("/:id", wrapAsync(async (req, res) => {
   const { id } = req.params;
   const listing = await Listing.findById(id).populate("owner");
@@ -22,16 +26,19 @@ router.get("/:id", wrapAsync(async (req, res) => {
   res.render("listings/show", { listing });
 }));
 
-// CREATE ROUTE
+
+// CREATE - Add a new listing
 router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res) => {
   const listing = new Listing(req.body.listing);
   listing.owner = req.user._id;
   await listing.save();
   req.flash("success", "Listing Created");
   res.redirect(`/listings/${listing._id}`);
+
 }));
 
-// EDIT ROUTE
+
+// EDIT - Show the edit form
 router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
   const { id } = req.params;
   const listing = await Listing.findById(id);
@@ -42,15 +49,15 @@ router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
   res.render("listings/edit", { listing });
 }));
 
-// UPDATE ROUTE
+/// UPDATE - Update a listing
 router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, res) => {
   const { id } = req.params;
   const listing = await Listing.findByIdAndUpdate(id, { ...req.body.listing });
   req.flash("success", "Listing Updated");
   res.redirect(`/listings/${listing._id}`);
-}));
 
-// DELETE ROUTE
+}));
+// DELETE - Delete a listing
 router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
   const { id } = req.params;
   await Listing.findByIdAndDelete(id);

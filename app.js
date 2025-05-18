@@ -11,10 +11,10 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const user = require("./models/user.js");
 const Listing = require("./models/listing.js");
-
 const listingRouter = require("./routes/listing.js");
 const reviewRoutes = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
+ // This should be before passport
 
 const dirname = path.resolve();
 
@@ -31,6 +31,7 @@ async function main() {
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(dirname, "views"));
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -85,6 +86,7 @@ app.get("/", (req, res) => {
 app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRoutes);
 app.use("/", userRouter);
+
 
 app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found"));

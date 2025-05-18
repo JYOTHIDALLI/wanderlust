@@ -3,14 +3,15 @@
 <h3 class="mb-4">All Listings</h3>
 
 <div class="row row-cols-lg-3 row-cols-md-2 row-cols-1 g-4">
-  <% for(let listing of allListings) { %>
-    <a href="/listings/<%= listing._id %>" class="stretched-link">
-        <div class="card listing-card" style="width: 20rem;">
+  <% for(let listing of listings) { %>
+    <div class="col">
+      <a href="/listings/<%= listing._id %>" class="text-decoration-none text-dark">
+        <div class="card listing-card h-100">
           <img
             src="<%= listing.image?.url || '/images/default.jpg' %>"
             class="card-img-top"
             alt="listing_image"
-            style="height:20rem; object-fit: cover;"
+            style="height: 20rem; object-fit: cover;"
           />
           <div class="card-body">
             <h5 class="card-title"><%= listing.title %></h5>
@@ -18,5 +19,6 @@
           </div>
         </div>
       </a>
+    </div>
   <% } %>
 </div>
