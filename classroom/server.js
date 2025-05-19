@@ -1,50 +1,46 @@
 const express = require("express");
-const session = require("express-session");
-
-
+const app = express();
 const users = require("./routes/user.js");
-const path = require("path");
+const posts = require("./routes/post.js");
+const session = require("express-session");
 const flash = require("connect-flash");
-
-const app = express(); // moved above any usage
+const path = require("path");
 
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
+app.set("views", path.join(__dirname, "views")); 
 
 const sessionOptions = {
-    secret: "thisisnotagoodsecret",
+    secret: "mysupersecretstring",
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: true,
 };
 
 app.use(session(sessionOptions));
 app.use(flash());
 
+// ✅ Fixed middleware syntax
 app.use((req, res, next) => {
     res.locals.success = req.flash("success");
-    res.locals.error = req.flash("error");
+    res.locals.errorMsg = req.flash("error");
     next();
 });
 
 app.get("/register", (req, res) => {
     let { name = "anonymous" } = req.query;
-    req.session.name = name;
+    req.session.name = name; 
+
     if (name === "anonymous") {
         req.flash("error", "user not registered");
     } else {
-        req.flash("success", "registered successfully");
+        req.flash("success", "user registered successfully");
     }
+
     res.redirect("/hello");
 });
 
 app.get("/hello", (req, res) => {
     res.render("page.ejs", { name: req.session.name });
 });
-
-// app.get("/reqcount", (req, res) => {
-//     req.session.count = (req.session.count || 0) + 1;
-//     res.send(`you have viewed this page ${req.session.count} times`);
-// });
 
 app.listen(3000, () => {
     console.log("server is listening to 3000");

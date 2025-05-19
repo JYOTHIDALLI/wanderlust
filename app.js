@@ -45,12 +45,26 @@ const sessionOptions = {
   cookie: {
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    httpOnly: true
-  }
+    httpOnly: true,
+  },
 };
 
 app.use(session(sessionOptions));
 app.use(flash());
+
+app.get("/", (req, res) => {
+  res.send("Hi, I am root");
+});
+
+app.use("/listings", listingRouter);
+app.use("/listings/:id/reviews", reviewRoutes); // 👈 fix applied here
+app.use("/", userRouter);
+
+app.all("*", (req, res, next) => {
+  next(new ExpressError("page not found", 404));
+});
+
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -66,9 +80,7 @@ app.use((req, res, next) => {
 });
 
 
-app.get("/", (req, res) => {
-  res.send("Hi, I am root");
-});
+
 
 /*app.get("/demouser", async (req, res) => {
   try {
@@ -83,14 +95,10 @@ app.get("/", (req, res) => {
   }
 });*/
 
-app.use("/listings", listingRouter);
-app.use("/listings/:id/reviews", reviewRoutes);
-app.use("/", userRouter);
 
 
-app.all("*", (req, res, next) => {
-  next(new ExpressError(404, "Page Not Found"));
-});
+
+
 
 app.use((err, req, res, next) => {
   const { statusCode = 500, message = "Something went wrong" } = err;
