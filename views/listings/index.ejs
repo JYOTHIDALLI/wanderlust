@@ -8,7 +8,7 @@
       <a href="/listings/<%= listing._id %>" class="text-decoration-none text-dark">
         <div class="card listing-card h-100">
           <img
-            src="<%= listing.image?.url || '/images/default.jpg' %>"
+            src="<%= listing.image.url %>"
             class="card-img-top"
             alt="listing_image"
             style="height: 20rem; object-fit: cover;"

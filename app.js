@@ -1,3 +1,7 @@
+if (process.env.NODE_ENV != "production") {
+  require("dotenv").config();
+}
+const {cloudinary, storage} = require('./cloudConfig.js');
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -9,14 +13,11 @@ const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
-const user = require("./models/user.js");
-const Listing = require("./models/listing.js");
+const User = require("./models/user.js"); 
+
 const listingRouter = require("./routes/listing.js");
 const reviewRoutes = require("./routes/review.js");
 const userRouter = require("./routes/user.js");
- // This should be before passport
-
-const dirname = path.resolve();
 
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
 
@@ -30,13 +31,12 @@ async function main() {
 
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
-app.set("views", path.join(dirname, "views"));
-
+app.set("views", path.join(__dirname, "views"));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
-app.use(express.static(path.join(dirname, "public")));
+app.use(express.static(path.join(__dirname, "public")));
 
 const sessionOptions = {
   secret: "mysupersecretcode",
@@ -45,33 +45,18 @@ const sessionOptions = {
   cookie: {
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    httpOnly: true,
-  },
+    httpOnly: true
+  }
 };
 
 app.use(session(sessionOptions));
 app.use(flash());
-
-app.get("/", (req, res) => {
-  res.send("Hi, I am root");
-});
-
-app.use("/listings", listingRouter);
-app.use("/listings/:id/reviews", reviewRoutes); // 👈 fix applied here
-app.use("/", userRouter);
-
-app.all("*", (req, res, next) => {
-  next(new ExpressError("page not found", 404));
-});
-
-
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.use(new LocalStrategy(user.authenticate()));
-passport.serializeUser(user.serializeUser());
-passport.deserializeUser(user.deserializeUser());
-
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());         
+passport.deserializeUser(User.deserializeUser());     
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
@@ -79,26 +64,30 @@ app.use((req, res, next) => {
   next();
 });
 
-
-
+app.get("/", (req, res) => {
+  res.send("Hi, I am root");
+});
 
 /*app.get("/demouser", async (req, res) => {
   try {
-    let fakeUser = new user({
+    let fakeUser = new User({ 
       email: "student@gmail.com",
       username: "sigma-student"
     });
-    let registeredUser = await user.register(fakeUser, "helloworld");
+    let registeredUser = await User.register(fakeUser, "helloworld");
     res.send(registeredUser);
   } catch (e) {
     res.send(e.message);
   }
 });*/
 
+app.use("/listings", listingRouter);
+app.use("/listings/:id/reviews", reviewRoutes);
+app.use("/", userRouter);
 
-
-
-
+app.all("*", (req, res, next) => {
+  next(new ExpressError(404, "Page Not Found"));
+});
 
 app.use((err, req, res, next) => {
   const { statusCode = 500, message = "Something went wrong" } = err;
